@@ -80,7 +80,10 @@ it('opens the room leaderboard below the result actions only on request',async()
 })
 
 it('copies a spoiler-free daily result',async()=>{
-  const writeText=vi.fn().mockResolvedValue(undefined);Object.defineProperty(navigator,'clipboard',{value:{writeText},configurable:true});Object.defineProperty(navigator,'share',{value:undefined,configurable:true})
+  const nativeShare=vi.fn().mockResolvedValue(undefined)
+  const writeText=vi.fn().mockResolvedValue(undefined);Object.defineProperty(navigator,'clipboard',{value:{writeText},configurable:true});Object.defineProperty(navigator,'share',{value:nativeShare,configurable:true})
   vi.mocked(badlyApi.state).mockResolvedValue(state({status:'completed',phase:'results',round_number:3,result:{title:'Secret Movie',image_url:'/stored/secret.webp',successful_round:3,remaining_ms:3000,rank_value:3,daily_number:258,completed_at:'2026-09-14T12:00:00Z'}}))
   render(<BadlyExplainedApp path="/badly-explained/play/10000000-0000-0000-0000-000000000001" navigate={vi.fn()}/>);await userEvent.click(await screen.findByRole('button',{name:/SHARE RESULT/}));expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Solved in 3 hints'));expect(writeText.mock.calls[0][0]).not.toContain('Secret Movie')
+  expect(nativeShare).not.toHaveBeenCalled()
+  expect(screen.getByRole('button',{name:/RESULT COPIED/})).toBeVisible()
 })

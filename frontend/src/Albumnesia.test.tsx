@@ -41,6 +41,21 @@ beforeEach(() => {
 })
 
 describe('Albumnesia player', () => {
+  it('copies results without opening native sharing even when available', async () => {
+    const nativeShare=vi.fn().mockResolvedValue(undefined)
+    const writeText=vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator,'clipboard',{value:{writeText},configurable:true})
+    Object.defineProperty(navigator,'share',{value:nativeShare,configurable:true})
+    vi.mocked(albumnesiaApi.state).mockResolvedValue(attempt({
+      status:'completed',phase:'results',total_rounds:1,correct_count:1,
+      total_score:'6.40',max_score:'10.00',results:[],
+    }))
+    render(<AlbumnesiaApp path="/albumnesia/play/10000000-0000-0000-0000-000000000001" navigate={vi.fn()}/>)
+    await userEvent.click(await screen.findByRole('button',{name:'SHARE RESULT'}))
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('6.40 / 10.00'))
+    expect(nativeShare).not.toHaveBeenCalled()
+    expect(await screen.findByRole('status')).toHaveTextContent('Copied successfully.')
+  })
   it('estimates two points per remaining second without an eight-point floor', async () => {
     const now = Date.now()
     const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
