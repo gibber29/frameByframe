@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 import shutil
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,7 @@ from backend.app.models.entities import (
     AlbumnesiaGameSet, AlbumnesiaParticipant, AlbumnesiaRoundSubmission, ContentEntry,
 )
 from backend.app.storage import LocalFilesystemStorage
+from backend.app.services.albumnesia_game import AlbumnesiaGameService
 
 
 @pytest.fixture
@@ -192,7 +194,31 @@ def test_failed_single_album_daily_resets_streak(album_client: TestClient) -> No
     assert result["total_score"] == "0.00" and result["streak"] == 0
 
 
-def test_last_moment_correct_answer_is_worth_about_eight(album_client: TestClient) -> None:
+@pytest.mark.parametrize("remaining_ms,correct,expected", [
+    (5000, True, "10.00"), (3250, True, "6.50"),
+    (1234, True, "2.47"), (3, True, "0.01"), (2, True, "0.00"),
+    (4000, False, "0.00"),
+])
+def test_server_awards_remaining_time_score(album_client, monkeypatch, remaining_ms, correct, expected):
+    now = datetime.now(timezone.utc)
+    monkeypatch.setattr(AlbumnesiaGameService, "now", lambda self: now)
+    state = album_client.post('/api/v1/albumnesia/daily/start').json()
+    aid = uuid.UUID(state['attempt_id'])
+    with SessionLocal.begin() as session:
+        attempt = session.get(AlbumnesiaAttempt, aid)
+        title = attempt.game_set.rounds[0].title_snapshot
+        attempt.phase = 'guess'
+        attempt.phase_started_at = now - timedelta(milliseconds=5000-remaining_ms)
+        attempt.phase_deadline = now + timedelta(milliseconds=remaining_ms)
+    response = album_client.post(f'/api/v1/albumnesia/attempts/{aid}/submit', json={
+        'title': title.lower() if correct else 'Definitely Incorrect Album',
+    })
+    assert response.status_code == 200
+    assert response.json()['last_correct'] is correct
+    assert Decimal(response.json()['last_score']) == Decimal(expected)
+
+
+def test_last_moment_correct_answer_is_worth_only_remaining_time(album_client: TestClient) -> None:
     state = album_client.post("/api/v1/albumnesia/daily/start").json()
     attempt_id = state["attempt_id"]
     album_client.post(f"/api/v1/albumnesia/attempts/{attempt_id}/ready")
@@ -203,7 +229,8 @@ def test_last_moment_correct_answer_is_worth_about_eight(album_client: TestClien
         attempt.phase_deadline = datetime.now(timezone.utc) + timedelta(milliseconds=150)
     result = album_client.post(f"/api/v1/albumnesia/attempts/{attempt_id}/submit", json={"title": title})
     assert result.status_code == 200
-    assert 8 <= float(result.json()["last_score"]) <= 8.10
+    assert result.json()["last_correct"] is True
+    assert Decimal("0.00") <= Decimal(result.json()["last_score"]) <= Decimal("0.30")
 
 
 def test_host_and_joiner_continue_separately_with_identical_room_snapshot(album_client: TestClient) -> None:

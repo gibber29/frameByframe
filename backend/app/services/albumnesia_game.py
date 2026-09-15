@@ -20,6 +20,7 @@ from backend.app.models.entities import (
 from backend.app.repositories.albumnesia_game import AlbumnesiaGameRepository
 from backend.app.repositories.content import normalized_answer
 from backend.app.core.answer_matching import matches_answer
+from backend.app.core.album_scoring import album_score
 
 ROUND_SECONDS = 5
 FEEDBACK_SECONDS = 1.5
@@ -291,7 +292,7 @@ class AlbumnesiaGameService:
         if attempt.phase != "guess" or not attempt.phase_deadline:
             raise AlbumnesiaConflict("This round is not accepting an answer")
         now = self.now()
-        remaining = max(0, min(5000, int((attempt.phase_deadline - now).total_seconds() * 1000)))
+        remaining = max(0, min(5000, (attempt.phase_deadline - now) // timedelta(milliseconds=1)))
         if remaining <= 0:
             return self.synchronize(attempt)
         row = self._round(attempt)
@@ -300,7 +301,7 @@ class AlbumnesiaGameService:
             # Resume legacy attempts using their original raw scoring rule.
             score = Decimal(remaining) / Decimal(100)
         elif correct:
-            score = Decimal("8.00") + Decimal("2.00") * Decimal(remaining) / Decimal("5000")
+            score = album_score(remaining, True)
         else:
             score = Decimal("0.00")
         round_max = Decimal("50.00") if attempt.score_scale == Decimal("250.00") else Decimal("10.00")

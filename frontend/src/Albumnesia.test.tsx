@@ -41,6 +41,20 @@ beforeEach(() => {
 })
 
 describe('Albumnesia player', () => {
+  it('estimates two points per remaining second without an eight-point floor', async () => {
+    const now = Date.now()
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+    try {
+      vi.mocked(albumnesiaApi.state).mockResolvedValue(attempt({
+        phase:'guess', image_url:null, server_time:new Date(now).toISOString(),
+        phase_deadline:new Date(now+3200).toISOString(),
+      }))
+      render(<AlbumnesiaApp path="/albumnesia/play/10000000-0000-0000-0000-000000000001" navigate={vi.fn()}/>)
+      expect(await screen.findByText('Correct now: 6.40 points')).toBeVisible()
+      expect(screen.getByText(/Lose 2.00 points per guessing second/)).toBeVisible()
+      expect(screen.queryByText(/at least eight points/)).not.toBeInTheDocument()
+    } finally { clock.mockRestore() }
+  })
   it('provides game switching through the responsive navigation', async () => {
     const navigate = vi.fn()
     render(<AlbumnesiaApp path="/albumnesia" navigate={navigate}/>)
