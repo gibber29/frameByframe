@@ -17,44 +17,6 @@ function message(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
 }
 
-function Home({ onPlay }: { onPlay: (category: Category) => void }) {
-  const [available, setAvailable] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    gameApi.categories()
-      .then(categories => setAvailable(new Set(categories.map(category => category.slug))))
-      .catch(reason => setError(message(reason)))
-      .finally(() => setLoading(false))
-  }, [])
-
-  return <main className="home-shell">
-    <header className="hero">
-      <p className="eyebrow">The daily movie-frame game</p>
-      <h1 className="wordmark">Frame<span>By</span>Frame</h1>
-      <p className="tagline">How much of a movie do you need?</p>
-    </header>
-    <section className="category-grid" aria-labelledby="categories-heading">
-      <h2 id="categories-heading" className="sr-only">Choose a category</h2>
-      {ALL_CATEGORIES.map(category => {
-        const playable = available.has(category.slug)
-        return <button
-          key={category.slug}
-          className="category-card"
-          disabled={!playable || loading}
-          onClick={() => onPlay(category)}
-          aria-describedby={`${category.slug}-status`}
-        >
-          <span>{category.name}</span>
-          <small id={`${category.slug}-status`}>{loading ? 'Checking today’s puzzle…' : playable ? 'Play today’s frame' : 'Coming soon'}</small>
-        </button>
-      })}
-    </section>
-    <a className="album-entry-link" href="/albumnesia">Play Albumnesia · the five-cover memory game →</a>
-    {error && <p className="notice error" role="alert">Could not check today’s categories. {error}</p>}
-  </main>
-}
 
 function RevealImage({ source, glimpse, visible }: { source: string; glimpse: Glimpse | null; visible: boolean }) {
   const imageRef = useRef<HTMLImageElement>(null)
@@ -318,7 +280,7 @@ function GameScreen({ initial, category, onBack }: { initial: GameState; categor
   </main>
 }
 
-function MovieApp() {
+function MovieApp({ onHome }: { onHome: () => void }) {
   const initialSlug = useMemo(() => window.location.pathname.match(/^\/game\/([^/]+)$/)?.[1] || null, [])
   const [route, setRoute] = useState<string | null>(initialSlug)
   const [game, setGame] = useState<GameState | null>(null)
@@ -326,6 +288,7 @@ function MovieApp() {
   const [error, setError] = useState('')
 
   const navigate = (slug: string | null) => {
+    if (!slug) { onHome(); return }
     window.history.pushState({}, '', slug ? `/game/${slug}` : '/')
     setRoute(slug)
     setGame(null)
@@ -344,7 +307,7 @@ function MovieApp() {
     gameApi.start(route).then(setGame).catch(reason => setError(message(reason))).finally(() => setLoading(false))
   }, [route])
 
-  if (!route) return <Home onPlay={category => navigate(category.slug)} />
+  if (!route) return null
   const category = ALL_CATEGORIES.find(item => item.slug === route) || { slug: route, name: route }
   if (loading) return <main className="centered" aria-live="polite">Starting today’s game…</main>
   if (error || !game) return <main className="centered"><p role="alert">{error || 'Unable to start this game.'}</p><button onClick={() => navigate(null)}>Back to categories</button></main>
@@ -357,5 +320,6 @@ export function App() {
   useEffect(() => { const pop = () => setPath(window.location.pathname); window.addEventListener('popstate', pop); return () => window.removeEventListener('popstate', pop) }, [])
   if (path.startsWith('/albumnesia')) return <AlbumnesiaApp path={path} navigate={navigate}/>
   if (path.startsWith('/badly-explained')) return <BadlyExplainedApp path={path} navigate={navigate}/>
-  return <MovieApp/>
+  if (path.startsWith('/game/')) return <MovieApp onHome={() => navigate('/')}/>
+  return <AlbumnesiaApp path="/albumnesia" navigate={navigate}/>
 }

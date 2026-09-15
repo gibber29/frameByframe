@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/albumnesia/:path*", "destination": "/index.html" },
+    { "source": "/badly-explained/:path*", "destination": "/index.html" },
+    { "source": "/game/:path*", "destination": "/index.html" }
+  ]
+}

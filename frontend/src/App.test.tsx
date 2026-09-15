@@ -10,6 +10,9 @@ vi.mock('./api', async () => {
   return {
     ApiError,
     preloadImage: vi.fn(),
+    albumnesiaApi: {
+      home: vi.fn().mockResolvedValue({ daily_date:'2026-09-15', active_album_count:5, daily_available:true, streak:0, completed_today:false }),
+    },
     gameApi: {
       categories: vi.fn(), start: vi.fn(), state: vi.fn(), glimpse: vi.fn(), guess: vi.fn(),
       crypticHint: vi.fn(), titlePatternHint: vi.fn(), result: vi.fn(),
@@ -39,7 +42,7 @@ const result: GameResult = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  window.history.replaceState({}, '', '/')
+  window.history.replaceState({}, '', '/game/superheroes')
   vi.mocked(gameApi.categories).mockResolvedValue([{ slug: 'superheroes', name: 'Superheroes' }])
   vi.mocked(gameApi.start).mockResolvedValue(state())
   vi.mocked(preloadImage).mockResolvedValue('blob:decoded-frame')
@@ -49,16 +52,17 @@ beforeEach(() => {
 })
 
 describe('player application', () => {
-  it('shows category availability and coming-soon states', async () => {
+  it('opens Albumnesia directly at the root instead of the old category page', async () => {
+    window.history.replaceState({}, '', '/')
     render(<App />)
-    expect(await screen.findByRole('button', { name: /Superheroes/ })).toBeEnabled()
-    expect(screen.getByRole('button', { name: /Anime/ })).toBeDisabled()
-    expect(screen.getAllByText('Coming soon')).toHaveLength(3)
+    expect(await screen.findByRole('heading', { name: 'HOW WILL YOU DROP THE NEEDLE?' })).toBeVisible()
+    expect(screen.queryByText('The daily movie-frame game')).not.toBeInTheDocument()
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
+    expect(gameApi.categories).not.toHaveBeenCalled()
   })
 
   it('starts a game, preloads its image, and enables guessing after a consumed glimpse', async () => {
     render(<App />)
-    await userEvent.click(await screen.findByRole('button', { name: /Superheroes/ }))
     expect(await screen.findByRole('heading', { name: 'Frame 1 of 5' })).toBeVisible()
     await waitFor(() => expect(preloadImage).toHaveBeenCalledWith('/api/v1/game/session/image', expect.any(AbortSignal)))
     expect(await screen.findByLabelText('Movie title')).toBeEnabled()
@@ -71,8 +75,8 @@ describe('player application', () => {
       state: state({ current_round: 2, score_estimate: '47.00' }), result: null,
     })
     render(<App />)
-    await userEvent.click(await screen.findByRole('button', { name: /Superheroes/ }))
     const input = await screen.findByLabelText('Movie title')
+    await waitFor(() => expect(input).toBeEnabled())
     await userEvent.type(input, 'Wrong movie{enter}')
     expect(await screen.findByRole('heading', { name: 'Frame 2 of 5' })).toBeVisible()
     expect(screen.getByText(/Incorrect — moving to Frame 2/)).toBeVisible()
@@ -83,7 +87,6 @@ describe('player application', () => {
     let resolve!: (value: never) => void
     vi.mocked(gameApi.guess).mockReturnValue(new Promise(value => { resolve = value }) as never)
     render(<App />)
-    await userEvent.click(await screen.findByRole('button', { name: /Superheroes/ }))
     const input = await screen.findByLabelText('Movie title')
     await waitFor(() => expect(input).toBeEnabled())
     await userEvent.type(input, 'Wrong movie')
@@ -105,7 +108,6 @@ describe('player application', () => {
       .mockResolvedValueOnce(state({ current_round: 3, hints_available: true, cryptic_hint_state: 'used', title_pattern_hint_state: 'available', score_estimate: '41.50' }))
       .mockResolvedValueOnce(state({ current_round: 3, hints_available: true, cryptic_hint_state: 'used', title_pattern_hint_state: 'used', score_estimate: '36.50' }))
     render(<App />)
-    await userEvent.click(await screen.findByRole('button', { name: /Superheroes/ }))
     expect(await screen.findByRole('button', { name: /title pattern/i })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: /Unlock cryptic clue/i }))
     expect(await screen.findByText(/A cryptic clue/)).toBeVisible()
