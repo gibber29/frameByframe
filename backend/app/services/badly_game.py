@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from sqlalchemy.exc import IntegrityError
 from backend.app.models.entities import BadlyAttempt, BadlyDailyProgress, BadlyGameSet, BadlyParticipant, BadlyRoom, BadlySubmission
-from backend.app.services.albumnesia_game import normalized_answer
+from backend.app.services.answer_matching import matches_answer, normalized_answer
 
 ROUND_MS=10000; FEEDBACK_MS=1000
 class BadlyNotFound(Exception): pass
@@ -14,7 +14,7 @@ class BadlyGameService:
     def now(self): return datetime.now(timezone.utc)
     def today(self): return self.now().astimezone(self.zone).date()
     def eligible(self): return [x for x in self.repository.active() if x.badly_explained and len(x.badly_explained.clues)==4]
-    def snapshot(self,entry,kind,day=None): return BadlyGameSet(kind=kind,game_date=day,content_id=entry.id,title_snapshot=entry.primary_answer,normalized_answer_snapshot=entry.normalized_answer,alternative_answers_snapshot=list(entry.alternative_answers),clues_snapshot=list(entry.badly_explained.clues),image_key_snapshot=entry.image_key)
+    def snapshot(self,entry,kind,day=None): return BadlyGameSet(kind=kind,game_date=day,content_id=entry.id,title_snapshot=entry.primary_answer,normalized_answer_snapshot=normalized_answer(entry.primary_answer),alternative_answers_snapshot=list(entry.alternative_answers),clues_snapshot=list(entry.badly_explained.clues),image_key_snapshot=entry.image_key)
     def ensure_daily(self):
         day=self.today(); found=self.repository.daily(day)
         if found:return found
@@ -89,7 +89,7 @@ class BadlyGameService:
         if a.phase!='active':raise BadlyConflict('This round is not accepting an answer')
         remaining=max(0,min(ROUND_MS,int((a.phase_deadline-self.now()).total_seconds()*1000)))
         if remaining<=0:return self.sync(a)
-        accepted={a.game_set.normalized_answer_snapshot}|{normalized_answer(x) for x in a.game_set.alternative_answers_snapshot}; correct=normalized_answer(title) in accepted
+        correct=matches_answer(title,a.game_set.title_snapshot,a.game_set.alternative_answers_snapshot)
         row=BadlySubmission(attempt_id=a.id,round_number=a.current_round,submitted_title=title.strip() or None,is_correct=correct,remaining_ms=remaining);self.repository.add(row);a.submissions.append(row)
         if correct:a.successful_round=a.current_round;a.successful_remaining_ms=remaining;self.complete(a,self.now())
         else:a.phase='feedback';a.phase_deadline=self.now()+timedelta(milliseconds=FEEDBACK_MS)

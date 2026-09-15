@@ -45,3 +45,18 @@ def test_room_participants_share_snapshot_and_rank_by_round_then_time(badly_clie
     with SessionLocal() as s:
         assert s.get(BadlyAttempt,uuid.UUID(host['attempt_id'])).game_set_id==s.get(BadlyAttempt,uuid.UUID(guest['attempt_id'])).game_set_id
     board=client.get(f"/api/v1/badly-explained/rooms/{room['code']}/leaderboard").json();assert len(board['entries'])==2 and all(not x['finished'] for x in board['entries'])
+
+
+def test_lowercase_title_wins_despite_stale_normalized_snapshot(badly_client):
+    client,_=badly_client
+    room=client.post('/api/v1/badly-explained/rooms',json={'room_name':'Case Test','display_name':'Ada'}).json()
+    state=client.post(f"/api/v1/badly-explained/rooms/{room['code']}/continue").json()
+    aid=uuid.UUID(state['attempt_id'])
+    with SessionLocal.begin() as session:
+        game=session.get(BadlyAttempt,aid).game_set
+        game.title_snapshot='The Lion King'
+        game.normalized_answer_snapshot='STALE NORMALIZED VALUE'
+    client.post(f'/api/v1/badly-explained/attempts/{aid}/ready')
+    response=client.post(f'/api/v1/badly-explained/attempts/{aid}/submit',json={'title':'  the   lion king! '})
+    assert response.status_code==200
+    assert response.json()['result']['successful_round']==1

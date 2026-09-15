@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import unicodedata
 import uuid
 
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from backend.app.models.entities import AlbumnesiaContent, AlbumnesiaGameRound, ContentEntry, Puzzle
-
-
-def normalized_answer(value: str) -> str:
-    value = unicodedata.normalize("NFKD", value).casefold()
-    return "".join(character for character in value if character.isalnum())
+from backend.app.services.answer_matching import normalized_answer
 
 
 class ContentRepository:

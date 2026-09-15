@@ -19,6 +19,7 @@ from backend.app.models.entities import (
 )
 from backend.app.repositories.albumnesia_game import AlbumnesiaGameRepository
 from backend.app.repositories.content import normalized_answer
+from backend.app.services.answer_matching import matches_answer
 
 ROUND_SECONDS = 5
 FEEDBACK_SECONDS = 1.5
@@ -294,9 +295,7 @@ class AlbumnesiaGameService:
         if remaining <= 0:
             return self.synchronize(attempt)
         row = self._round(attempt)
-        supplied = normalized_answer(title)
-        accepted = {row.normalized_answer_snapshot} | {normalized_answer(value) for value in row.alternative_answers_snapshot}
-        correct = bool(supplied) and supplied in accepted
+        correct = matches_answer(title, row.title_snapshot, row.alternative_answers_snapshot)
         if correct and attempt.score_scale == Decimal("250.00"):
             # Resume legacy attempts using their original raw scoring rule.
             score = Decimal(remaining) / Decimal(100)
