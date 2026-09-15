@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: framebyframe
+      POSTGRES_USER: framebyframe
+      POSTGRES_PASSWORD: framebyframe_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U framebyframe -d framebyframe"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://framebyframe:framebyframe_dev_password@db:5432/framebyframe
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-true}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-local-development-admin}
+      ASSET_ROOT: /app/assets/scenes
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-12582912}
+      UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-10}
+      UPLOAD_WEBP_QUALITY: ${UPLOAD_WEBP_QUALITY:-86}
+      GUEST_COOKIE_SECRET: ${GUEST_COOKIE_SECRET:-local-development-only-change-me}
+      GUEST_COOKIE_SECURE: ${GUEST_COOKIE_SECURE:-false}
+      GAME_TIMEZONE: ${GAME_TIMEZONE:-Asia/Kolkata}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app/backend
+      - ./assets/scenes:/app/assets/scenes
+    command: ["sh", "-c", "alembic upgrade head && python -m backend.app.db.seed && exec fastapi run backend/app/main.py --host 0.0.0.0 --port 8000"]
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+      VITE_PROXY_TARGET: http://api:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
