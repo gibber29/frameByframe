@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from sqlalchemy.exc import IntegrityError
 from backend.app.models.entities import BadlyAttempt, BadlyDailyProgress, BadlyGameSet, BadlyParticipant, BadlyRoom, BadlySubmission
-from backend.app.services.answer_matching import matches_answer, normalized_answer
+from backend.app.core.answer_matching import matches_answer, normalized_answer
 
 ROUND_MS=10000; FEEDBACK_MS=1000
 class BadlyNotFound(Exception): pass

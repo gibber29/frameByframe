@@ -19,7 +19,7 @@ from backend.app.models.entities import (
 )
 from backend.app.repositories.albumnesia_game import AlbumnesiaGameRepository
 from backend.app.repositories.content import normalized_answer
-from backend.app.services.answer_matching import matches_answer
+from backend.app.core.answer_matching import matches_answer
 
 ROUND_SECONDS = 5
 FEEDBACK_SECONDS = 1.5

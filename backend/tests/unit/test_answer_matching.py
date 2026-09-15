@@ -1,6 +1,6 @@
 import pytest
 
-from backend.app.services.answer_matching import matches_answer
+from backend.app.core.answer_matching import matches_answer
 
 
 @pytest.mark.parametrize("guess", [

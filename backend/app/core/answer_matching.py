@@ -1,4 +1,4 @@
-"""Authoritative title matching, independent of stored normalization caches."""
+"""Dependency-free title matching shared by repositories and services."""
 from collections.abc import Iterable
 import unicodedata
 

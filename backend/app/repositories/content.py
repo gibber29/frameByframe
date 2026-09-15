@@ -6,7 +6,7 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from backend.app.models.entities import AlbumnesiaContent, AlbumnesiaGameRound, ContentEntry, Puzzle
-from backend.app.services.answer_matching import normalized_answer
+from backend.app.core.answer_matching import normalized_answer
 
 
 class ContentRepository:
