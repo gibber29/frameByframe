@@ -6,9 +6,9 @@ const NAME = 'framebyframe-badly-name'
 const err = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong.'
 
 function Nav({ go }: { go: (path: string) => void }) {
-  return <nav className="bad-nav">
+  return <nav className="bad-nav" aria-label="Main navigation">
     <button className="bad-logo" onClick={() => go('/')} aria-label="Frame By Frame home"><i />FRAME <small>BY</small> FRAME<i /></button>
-    <div><button className="active" onClick={() => go('/badly-explained')}>BADLY EXPLAINED</button><button onClick={() => go('/albumnesia')}>ALBUMNESIA</button></div>
+    <div className="game-nav-links"><button className="active" aria-current="page" onClick={() => go('/badly-explained')}>BADLY EXPLAINED</button><button onClick={() => go('/albumnesia')}>ALBUMNESIA</button></div>
     <span className="bad-controls" aria-label="Sound and profile controls"><b aria-hidden="true">◖))</b><i aria-hidden="true" /></span>
   </nav>
 }

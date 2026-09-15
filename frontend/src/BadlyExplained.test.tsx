@@ -27,11 +27,16 @@ it('only suggests related titles after typing and hides them when cleared',async
 })
 
 it('omits Superheroes and Animation navigation in Badly Explained',async()=>{
-  render(<BadlyExplainedApp path="/badly-explained" navigate={vi.fn()}/>)
+  const navigate=vi.fn()
+  render(<BadlyExplainedApp path="/badly-explained" navigate={navigate}/>)
   expect(await screen.findByRole('button',{name:'BADLY EXPLAINED'})).toBeVisible()
   expect(screen.queryByRole('button',{name:'SUPERHEROES'})).not.toBeInTheDocument()
   expect(screen.queryByRole('button',{name:'ANIMATION'})).not.toBeInTheDocument()
   expect(screen.getByRole('button',{name:'ALBUMNESIA'})).toBeVisible()
+  expect(document.querySelector('.bad-nav .game-nav-links')).toHaveTextContent('ALBUMNESIA')
+  expect(screen.getByRole('button',{name:'BADLY EXPLAINED'})).toHaveAttribute('aria-current','page')
+  await userEvent.click(screen.getByRole('button',{name:'ALBUMNESIA'}))
+  expect(navigate).toHaveBeenCalledWith('/albumnesia')
 })
 
 it.each([

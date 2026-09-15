@@ -69,7 +69,7 @@ async function renderDistortedCover(source: string, method: NonNullable<AlbumAtt
 function AlbumNav({ navigate }: { navigate: (path: string) => void }) {
   return <nav className="album-nav" aria-label="Main navigation">
     <button className="album-brand" onClick={() => navigate('/')}>FRAME <small>BY</small> FRAME</button>
-    <div><button onClick={() => navigate('/badly-explained')}>BADLY EXPLAINED</button><button className="active" onClick={() => navigate('/albumnesia')}>ALBUMNESIA</button></div>
+    <div className="game-nav-links"><button onClick={() => navigate('/badly-explained')}>BADLY EXPLAINED</button><button className="active" aria-current="page" onClick={() => navigate('/albumnesia')}>ALBUMNESIA</button></div>
     <div className="album-nav-tools"><button type="button" aria-label="Sound control" className="sound-control"><span aria-hidden="true">◖))</span></button><i aria-hidden="true"/><button type="button" aria-label="Profile" className="profile-control"><span aria-hidden="true"/></button></div>
   </nav>
 }

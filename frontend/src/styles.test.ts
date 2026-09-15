@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest'
 import css from './styles.css?raw'
 
 describe('responsive accessibility CSS', () => {
+  it('keeps mobile game navigation visible and contains lobby codes and inputs', () => {
+    const mobile = css.slice(css.indexOf('/* Keep both games reachable'))
+    expect(mobile).toContain('@media (max-width: 850px)')
+    expect(mobile).toContain('.album-nav>div.game-nav-links, .bad-nav>div.game-nav-links')
+    expect(mobile).toContain('display:grid')
+    expect(mobile).toContain('grid-row:2')
+    expect(mobile).toContain('position:static')
+    expect(mobile).toContain('.album-lobby .room-code')
+    expect(mobile).toContain('font-size:clamp(1.25rem,6vw,2.75rem)')
+    expect(mobile).toContain('text-overflow:ellipsis')
+  })
   it('contains mobile-first breakpoints', () => {
     expect(css).toContain('@media (min-width: 560px)')
     expect(css).toContain('@media (min-width: 840px)')

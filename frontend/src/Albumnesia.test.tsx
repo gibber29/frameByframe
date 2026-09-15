@@ -41,6 +41,16 @@ beforeEach(() => {
 })
 
 describe('Albumnesia player', () => {
+  it('provides game switching through the responsive navigation', async () => {
+    const navigate = vi.fn()
+    render(<AlbumnesiaApp path="/albumnesia" navigate={navigate}/>)
+    const links = document.querySelector('.album-nav .game-nav-links')
+    expect(links).toHaveTextContent('BADLY EXPLAINED')
+    expect(links).toHaveTextContent('ALBUMNESIA')
+    expect(screen.getByRole('button', {name:'ALBUMNESIA'})).toHaveAttribute('aria-current', 'page')
+    await userEvent.click(screen.getByRole('button', {name:'BADLY EXPLAINED'}))
+    expect(navigate).toHaveBeenCalledWith('/badly-explained')
+  })
   it('starts the deterministic daily from the reference-style landing page', async () => {
     const navigate = vi.fn(); render(<AlbumnesiaApp path="/albumnesia" navigate={navigate}/>)
     expect(await screen.findByText(/3 DAY STREAK/)).toBeVisible()
