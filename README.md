@@ -1,150 +1,229 @@
 # FrameByFrame
 
-FrameByFrame is a daily movie-frame guessing game.
+**How well do you actually know the things you watch and listen to?**
 
-## Backend Setup
+FrameByFrame is a collection of fast, visual guessing games built around movies, animation, music, and pop culture.
 
-Requirements:
+Instead of traditional trivia questions, each game tests recognition in a different way — cryptic descriptions, distorted artwork, visual clues, and progressively easier hints.
 
-- Python 3.12
-- Docker and Docker Compose
+Currently featuring **Albumnesia** and **Badly Explained**.
 
-Create a local environment file from the example and set your own local values:
+---
+
+## Games
+
+### Albumnesia
+
+Think you know an album just by looking at it?
+
+Albumnesia takes recognizable album covers and removes or alters important visual information. Your job is to figure out the album before too much is revealed.
+
+#### Daily Album
+
+A new album challenge to solve.
+
+Identify the album using the altered artwork and try to get it with as little help as possible.
+
+#### Battle of the Bands
+
+Put your music knowledge to the test across multiple albums and artists.
+
+---
+
+### Badly Explained
+
+Movies explained terribly.
+
+You're given increasingly useful clues about a single animated movie across **5 rounds**.
+
+**Round 1 →** Extremely vague clue  
+**Round 2 →** Another clue  
+**Round 3 →** Things start becoming recognizable  
+**Round 4 →** Strong final textual hint  
+**Round 5 →** Image from the movie
+
+You have **10 seconds per round** to make your guess.
+
+Guess correctly as early as possible — the number of rounds it takes is your result.
+
+---
+
+## How It Works
+
+FrameByFrame is designed around short game sessions.
+
+1. Pick a game mode.
+2. Receive a distorted image, strange description, or visual clue.
+3. Enter your guess.
+4. Get additional information when you're stuck.
+5. Reveal the answer and see how well you did.
+6. Try another challenge.
+
+No 40-question trivia quizzes.
+
+Just one question:
+
+**Do you recognize it?**
+
+---
+
+## Tech Stack
+
+### Frontend
+
+- React / JavaScript
+- HTML
+- CSS
+- Responsive web interface
+- Vercel
+
+### Backend
+
+- REST API
+- Render
+- Server-side game logic
+
+### Database
+
+- PostgreSQL
+- Render PostgreSQL
+
+### Infrastructure
+
+```text
+                    Player
+                       │
+                       ▼
+                  Vercel CDN
+                       │
+                       ▼
+              FrameByFrame Frontend
+                       │
+                    HTTPS
+                       │
+                       ▼
+                 Render API
+                       │
+                       ▼
+              Render PostgreSQL
+```
+
+---
+
+## Project Structure
+
+```text
+FrameByFrame
+│
+├── frontend
+│   ├── components
+│   ├── pages
+│   ├── assets
+│   └── game UI
+│
+├── backend
+│   ├── API routes
+│   ├── game logic
+│   └── database access
+│
+└── database
+    ├── albums
+    ├── movies
+    ├── hints
+    └── game data
+```
+
+---
+
+## Running Locally
+
+Clone the repository:
 
 ```bash
-cp .env.example .env
+git clone <repository-url>
+cd framebyframe
 ```
 
-Start PostgreSQL and the FastAPI backend:
+Install dependencies:
 
 ```bash
-docker compose up --build
+npm install
 ```
 
-The API container runs Alembic migrations and the idempotent reference-data seed before startup.
-`database/schema.sql` is retained as a reference snapshot and is not executed by Docker.
+Create the required environment variables:
 
-The API will be available at:
-
-```text
-http://localhost:8000
+```env
+DATABASE_URL=your_database_url
 ```
 
-The functional player frontend is available at:
+Add any additional environment variables required by the frontend/backend.
 
-```text
-http://localhost:5173
-```
-
-Health check:
-
-```text
-GET http://localhost:8000/api/v1/health
-```
-
-Run tests locally:
+Start the development server:
 
 ```bash
-pip install -e ".[dev]"
-pytest
+npm run dev
 ```
 
-Run migrations and tests in Docker (without resetting the database volume):
+---
 
-```bash
-docker compose run --rm api alembic upgrade head
-docker compose run --rm api pytest
-docker compose run --rm frontend npm test
-docker compose run --rm frontend npm run build
-```
+## Production Deployment
 
-The development gameplay API is available under `/api/v1/game`. It uses a
-signed, HTTP-only guest cookie to resume one session per daily puzzle. Public
-gameplay endpoints never include the movie title until a session is complete.
-
-Configure the local gameplay environment with `GUEST_COOKIE_SECRET`,
-`GUEST_COOKIE_SECURE`, and `GAME_TIMEZONE`. Use a long random cookie secret and
-enable secure cookies when serving over HTTPS.
-
-## Local puzzle authoring
-
-Docker Compose enables the development-only admin tool and mounts `assets/scenes`
-for processed image storage. Open `http://localhost:8000/admin/puzzles` after startup. Set
-`ADMIN_ENABLED=false` to omit both the admin page and admin API routes.
-Set a private `ADMIN_TOKEN`; the wizard requests it once per browser tab and
-sends it in `X-Admin-Token` for every mutation. Admin authentication does not
-use cookies, so there is no cookie-authenticated CSRF surface.
-
-The Create Puzzle wizard stages WebP, PNG, and JPEG uploads under
-`assets/scenes/.staging`, corrects image orientation, and converts accepted
-files to WebP. Successful saves move them to
-`assets/scenes/<generated-movie-slug>/<generated-id>.webp`. Configure upload
-limits with `UPLOAD_MAX_BYTES`, `UPLOAD_RATE_LIMIT_PER_MINUTE`, and
-`UPLOAD_WEBP_QUALITY`. Images remain accessible only through backend endpoints.
-
-The unified content manager is available at
-`http://localhost:8000/admin/content`. It keeps the Iconic Movies wizard
-available and adds complete Badly Explained and Albumnesia authoring. Uploaded
-source images are stored under opaque generated keys. Albumnesia text and
-subject masks are stored as normalized `0..1` coordinates; previews never
-modify the original stored image. Its selectable techniques are Pixel
-Hangover, Sleeve Shredder, Channel Damage, Identity Crisis, and Outline Only.
-
-Content manager API routes include:
+FrameByFrame currently uses:
 
 ```text
-GET    /api/v1/admin/content
-GET    /api/v1/admin/content/check-answer
-POST   /api/v1/admin/content/badly-explained
-POST   /api/v1/admin/content/albumnesia
-GET    /api/v1/admin/content/{content_id}
-PATCH  /api/v1/admin/content/{content_id}/badly-explained
-PATCH  /api/v1/admin/content/{content_id}/albumnesia
-POST   /api/v1/admin/content/{content_id}/image
-GET    /api/v1/admin/content/{content_id}/image
-POST   /api/v1/admin/content/{content_id}/duplicate
-DELETE /api/v1/admin/content/{content_id}
+Frontend       → Vercel
+Backend/API    → Render
+Database       → Render PostgreSQL
 ```
 
-No additional environment variables are required. The content manager reuses
-`ADMIN_ENABLED`, `ADMIN_TOKEN`, `ASSET_ROOT`, `UPLOAD_MAX_BYTES`,
-`UPLOAD_RATE_LIMIT_PER_MINUTE`, and `UPLOAD_WEBP_QUALITY`.
+Production deployments are connected to the GitHub repository, allowing new versions to be deployed after changes are pushed to the production branch.
 
-Wizard API routes include:
+---
 
-```text
-POST   /api/v1/admin/uploads
-GET    /api/v1/admin/uploads/{stage_id}/image
-DELETE /api/v1/admin/uploads/{stage_id}
-GET    /api/v1/admin/classifications
-POST   /api/v1/admin/tags
-POST   /api/v1/admin/puzzles/complete
-POST   /api/v1/admin/puzzles/{puzzle_id}/image
-```
+## What's Next?
 
-The same page includes daily scheduling for ready puzzles. Scheduling API
-routes are available only when the development admin is enabled:
+FrameByFrame is being built as a growing collection of recognition-based games.
 
-```text
-GET    /api/v1/admin/schedule
-POST   /api/v1/admin/schedule
-PATCH  /api/v1/admin/schedule/{daily_puzzle_id}
-DELETE /api/v1/admin/schedule/{daily_puzzle_id}
-```
+Planned ideas include:
 
-Player gameplay routes are:
+- More Albumnesia challenges
+- Larger animated movie collection
+- Additional movie guessing modes
+- New music-based games
+- Daily challenges
+- Player statistics
+- Streaks
+- Leaderboards
+- Shareable results
+- More categories and difficulty levels
 
-```text
-GET  /api/v1/game/categories
-POST /api/v1/game/start
-POST /api/v1/game/{session_id}/glimpse
-POST /api/v1/game/{session_id}/guess
-POST /api/v1/game/{session_id}/hints/cryptic
-POST /api/v1/game/{session_id}/hints/title-pattern
-GET  /api/v1/game/{session_id}/state
-GET  /api/v1/game/{session_id}/result
-```
+---
 
-The Vite client uses relative API paths by default and proxies `/api` to
-FastAPI during development. Set `VITE_API_BASE_URL` only when the API is served
-from a separate public origin.
+## Design Philosophy
+
+FrameByFrame isn't meant to feel like another generic trivia website.
+
+The interface uses a playful, hand-drawn visual language inspired by notebooks, doodles, posters, album artwork, and movie culture.
+
+Every game mode is intended to have its own personality while still feeling like part of the same world.
+
+---
+
+## Status
+
+**Public Beta**
+
+Two game modes are currently playable:
+
+`Albumnesia`  
+`Badly Explained`
+
+More experiments are coming.
+
+---
+
+## Author
+
+Built by **Ashish Choudhary**
+
+If you somehow guessed everything on Round 1, you either have incredible taste or spend far too much time on the internet.
